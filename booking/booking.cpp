@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <algorithm>
 
 using namespace std;
 
@@ -31,8 +32,11 @@ public:
     bool isAvailable() const {
         return this->available;
     }
-};
 
+    void changeAvailability() {
+        available = !available;
+    }
+};
 
 class Airplane {
 
@@ -67,6 +71,7 @@ public:
 };
 
 class Ticket {
+    int id;
     string date;
     string flight_no;
     string passenger;
@@ -77,8 +82,29 @@ public:
     Ticket() {}
 
     // Parameterized constructor
-    Ticket(const string& date, const string& flight_no, const string& passenger, const Seat& seat)
-        : date(date), flight_no(flight_no), passenger(passenger), seat(seat) {
+    Ticket(const string& date, const string& flight_no, const string& passenger, const Seat& seat, const int& id)
+        : date(date), flight_no(flight_no), passenger(passenger), seat(seat), id(id) {
+        cout << "ticket created" << endl;
+    }
+
+    int getId() const {
+        return this->id;
+    }
+};
+
+class Passenger {
+    string name;
+    vector<Ticket> tickets;
+
+public:
+    Passenger(const string& name): name(name){}
+
+    void addTicket(const Ticket& ticket) {
+        this->tickets.push_back(ticket);
+    }
+
+    string getName() const {
+        return this->name;
     }
 };
 
@@ -162,6 +188,9 @@ class CommandExecutor {
     string filename = "config-input.txt";
     ConfigReader reader;
     vector<Airplane> airplanes = reader.readConfig(filename);
+    vector<Ticket> tickets;
+    vector<Passenger> passengers;
+    int id = 1234;
 
 public:
 
@@ -175,6 +204,70 @@ public:
         // Return an empty vector if no matching airplane is found
         return vector<Seat>();
     };
+
+    void bookSeat(const string& date, const string& flight_no, 
+        const string& place, const string& passengerName) {
+
+        bool ticketBooked = false;
+
+        for (const auto& airplane : this->airplanes) {
+            if (airplane.getDate() == date && airplane.getFlightNo() == flight_no) {
+                for (auto& seat : airplane.getAvailableSeats()) {
+                    if (seat.getPlace() == place) {
+                        Ticket ticket(date, flight_no, passengerName, seat, id);
+                        id++;
+                        seat.changeAvailability();
+                        ticketBooked = true;
+                        tickets.push_back(ticket);
+
+                        bool found = false;
+                        for (auto& passenger : passengers) {
+                            if (passenger.getName() == passengerName) {
+                                // If the passenger already exists, add the ticket to their tickets
+                                passenger.addTicket(ticket);
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (!found) {
+                            // If the passenger does not exist, create a new passenger and add the ticket to their tickets
+                            Passenger newPassenger(passengerName);
+                            newPassenger.addTicket(ticket);
+                            passengers.push_back(newPassenger);
+                        }
+                        break;
+
+                        
+                    }
+                }
+                if (ticketBooked) {
+                    break;
+                }
+                else {
+                    cout << "The seat " << place << " is already booked." << endl;
+                }
+            }
+        }
+
+        if (!ticketBooked) {
+            cout << "You entered a non-existing flight" << endl;
+        }
+
+        cout << tickets.size() << endl;
+        cout << passengers.size() << endl;
+
+    }
+
+    void viewTicket(const string& id) {
+        int id = stoi(id);
+        
+        auto it = find_if(tickets.begin(), tickets.end(), &id{
+                return ticket.getName() == passengerName;
+            });
+
+        cout << it;
+    }
 };
 
 class InputReader {
@@ -198,7 +291,9 @@ public:
         string command = inputParams[0];
 
         if (command == "check") {
-            vector<Seat> availability = executor.findAirplane(inputParams[1], inputParams[2]);
+            string date = inputParams[1];
+            string flight = inputParams[2];
+            vector<Seat> availability = executor.findAirplane(date, flight);
             // cout << availability.size() << endl;
 
             cout << "Available places:" << endl;
@@ -209,6 +304,12 @@ public:
 
         else if (command == "book") {
             // booking
+            string date = inputParams[1];
+            string flight = inputParams[2];
+            string place = inputParams[3];
+            string passenger = inputParams[4];
+
+            executor.bookSeat(date, flight, place, passenger);
         }
 
         else if (command == "return") {
@@ -224,6 +325,7 @@ public:
 
             else {
                 // view by ticket id
+                executor.viewTicket()
             }
         }
 
@@ -233,9 +335,6 @@ public:
     }
 
 };
-
-
-
 
 
 int main() {
