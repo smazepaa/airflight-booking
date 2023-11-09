@@ -51,15 +51,10 @@ public:
     Airplane(const string& date, const string& flight_no, int seats, const vector<Seat>& availability)
         : date(date), flight_no(flight_no), seats(seats), availability(availability) {}
 
-    vector<Seat> getAvailableSeats() const {
-        vector<Seat> availableSeats;
-        for (const auto& seat : this->availability) {
-            if (seat.isAvailable()) {
-                availableSeats.push_back(seat);
-            }
-        }
-        return availableSeats;
+    vector<Seat>& getSeats() {
+        return this->availability;
     }
+
 
     string getDate() const {
         return this->date;
@@ -214,29 +209,33 @@ class CommandExecutor {
 
 public:
 
-    vector<Seat> findAirplane(const string& date, const string& flight_no) {
-        for (const auto& airplane : this->airplanes) {
+    vector<Seat>& findAirplane(const string& date, const string& flight_no) {
+        for (auto& airplane : this->airplanes) {
             if (airplane.getDate() == date && airplane.getFlightNo() == flight_no) {
-                return airplane.getAvailableSeats();
+                return airplane.getSeats();
             }
         }
 
-        // Return an empty vector if no matching airplane is found
-        return vector<Seat>();
-    };
+        // Return a reference to an empty vector if no matching airplane is found
+        static vector<Seat> emptyVector;
+        return emptyVector;
+    }
+
 
     void bookSeat(const string& date, const string& flight_no, 
         const string& place, const string& passengerName) {
 
         bool ticketBooked = false;
 
-        for (auto& airplane : this->airplanes) {
+        for (Airplane& airplane : this->airplanes) {
             if (airplane.getDate() == date && airplane.getFlightNo() == flight_no) {
-                for (auto& seat : airplane.getAvailableSeats()) {
-                    if (&seat.getPlace() == place) {
-                        Ticket ticket(date, flight_no, passengerName, &seat, id);
-                        id++;
+                vector<Seat>& seats = airplane.getSeats();
+                
+                for (Seat& seat : seats) {
+                    if (seat.getPlace() == place && seat.isAvailable()) {
                         seat.changeAvailability();
+                        Ticket ticket(date, flight_no, passengerName, seat, id);
+                        id++;
                         ticketBooked = true;
                         tickets.push_back(ticket);
 
@@ -262,13 +261,17 @@ public:
 
                 if (!ticketBooked) {
                     cout << "The seat " << place << " is already booked." << endl;
+                    return;
                 }
+            }
+
+            if (!ticketBooked) {
+                cout << "You entered a non-existing flight" << endl;
+                return;
             }
         }
 
-        if (!ticketBooked) {
-            cout << "You entered a non-existing flight" << endl;
-        }
+        
 
         // cout << tickets.size() << endl;
         // cout << passengers.size() << endl;
@@ -330,7 +333,7 @@ public:
 
             for (auto& airplane : airplanes) {
                 if (airplane.getDate() == date && airplane.getFlightNo() == flight_no) {
-                    for (auto& seat : airplane.getAvailableSeats()) {
+                    for (auto& seat : airplane.getSeats()) {
                         if (seat.getPlace() == place) {
                             seat.changeAvailability();
                             cout << "Ticket with ID " << id << " has been returned." << endl;
@@ -381,8 +384,11 @@ public:
 
                 cout << "Available places:" << endl;
                 for (const auto& seat : availability) {
-                    cout << seat.getPlace() << " - " << seat.getPrice() << endl;
+                    if (seat.isAvailable()) {
+                        cout << seat.getPlace() << " - " << seat.getPrice() << endl;
+                    }
                 }
+
             }
 
             else if (command == "book") {
