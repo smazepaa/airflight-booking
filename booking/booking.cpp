@@ -122,6 +122,10 @@ public:
     string getName() const {
         return this->name;
     }
+
+    vector<Ticket> getTickets() const {
+        return this->tickets;
+    }
 };
 
 class ConfigReader {
@@ -274,9 +278,8 @@ public:
         // cout << passengers.size() << endl;
     }
 
-    void viewTicket(const string& id) {
-        int id_number = stoi(id);
-        
+    void viewTicket(const int& id_number) {
+
         int ticketIndex = findTicket(id_number);
         if (ticketIndex != - 1) {
             Ticket ticket = tickets[ticketIndex];
@@ -297,6 +300,31 @@ public:
         }
         return -1;  // Return -1 if no object was found
     }
+
+
+    void showForUser(const string& psngName) {
+
+        bool userFound = false;
+
+        for (size_t i = 0; i < passengers.size(); ++i) {
+            if (passengers[i].getName() == psngName) {
+                userFound = true;
+                vector<Ticket> pasTickets = passengers[i].getTickets();
+                for (size_t j = 0; j < pasTickets.size(); ++j) {
+                    int id = pasTickets[j].getId();
+                    cout << j + 1<< ". ";
+                    viewTicket(id);
+                }
+                if (userFound) {
+                    break;
+                }
+            }
+        }
+        if(!userFound) {
+            cout << "There is no user with entered username" << endl;
+        }
+    }
+
 };
 
 class InputReader {
@@ -352,11 +380,13 @@ public:
 
                 if (inputParams[1] == "username") {
                     // viewing by username 
+                    string passenger = inputParams[2];
+                    executor.showForUser(passenger);
                 }
 
                 else {
                     // view by ticket id
-                    string id = inputParams[1];
+                    int id = stoi(inputParams[1]);
                     executor.viewTicket(id);
                 }
             }
