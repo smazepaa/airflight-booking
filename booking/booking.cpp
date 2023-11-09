@@ -121,6 +121,11 @@ public:
     vector<Ticket> getTickets() const {
         return this->tickets;
     }
+
+    void removeTicketById(const int& id) {
+        this->tickets.erase(remove_if(this->tickets.begin(), this->tickets.end(),
+            [id](const Ticket& ticket) { return ticket.getId() == id; }), tickets.end());
+    }
 };
 
 class ConfigReader {
@@ -216,7 +221,6 @@ public:
             }
         }
 
-        // Return a reference to an empty vector if no matching airplane is found
         static vector<Seat> emptyVector;
         return emptyVector;
     }
@@ -265,16 +269,9 @@ public:
                 }
             }
 
-            if (!ticketBooked) {
-                cout << "You entered a non-existing flight" << endl;
-                return;
-            }
+            cout << "You entered a non-existing flight" << endl;
+            return;
         }
-
-        
-
-        // cout << tickets.size() << endl;
-        // cout << passengers.size() << endl;
     }
 
     void viewTicket(const int& id_number) {
@@ -337,8 +334,16 @@ public:
                         if (seat.getPlace() == place) {
                             seat.changeAvailability();
                             cout << "Ticket with ID " << id << " has been returned." << endl;
-                            // You may want to remove the ticket from the tickets vector and passenger's tickets as well.
-                            // This is just a basic implementation to change the availability.
+                            
+                            this->tickets.erase(this->tickets.begin() + ticketIndex);
+
+                            // Remove the ticket from the passenger's tickets
+                            for (auto& passenger : passengers) {
+                                if (passenger.getName() == ticket.getPassenger()) {
+                                    passenger.removeTicketById(id);
+                                    break;
+                                }
+                            }
                             return;
                         }
                     }
@@ -351,7 +356,6 @@ public:
             cout << "Error: Ticket with ID " << id << " not found." << endl;
         }
     }
-
 };
 
 class InputReader {
@@ -388,7 +392,6 @@ public:
                         cout << seat.getPlace() << " - " << seat.getPrice() << endl;
                     }
                 }
-
             }
 
             else if (command == "book") {
@@ -418,7 +421,7 @@ public:
                 }
 
                 else {
-                    // view by ticket id
+                    // viewing by ticket id
                     int id = stoi(inputParams[1]);
                     executor.viewTicket(id);
                 }
