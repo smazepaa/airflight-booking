@@ -230,11 +230,11 @@ public:
 
         bool ticketBooked = false;
 
-        for (const auto& airplane : this->airplanes) {
+        for (auto& airplane : this->airplanes) {
             if (airplane.getDate() == date && airplane.getFlightNo() == flight_no) {
                 for (auto& seat : airplane.getAvailableSeats()) {
-                    if (seat.getPlace() == place) {
-                        Ticket ticket(date, flight_no, passengerName, seat, id);
+                    if (&seat.getPlace() == place) {
+                        Ticket ticket(date, flight_no, passengerName, &seat, id);
                         id++;
                         seat.changeAvailability();
                         ticketBooked = true;
@@ -256,15 +256,11 @@ public:
                             newPassenger.addTicket(ticket);
                             passengers.push_back(newPassenger);
                         }
-                        break;
-
-                        
+                        return;
                     }
                 }
-                if (ticketBooked) {
-                    break;
-                }
-                else {
+
+                if (!ticketBooked) {
                     cout << "The seat " << place << " is already booked." << endl;
                 }
             }
@@ -301,7 +297,6 @@ public:
         return -1;  // Return -1 if no object was found
     }
 
-
     void showForUser(const string& psngName) {
 
         bool userFound = false;
@@ -322,6 +317,35 @@ public:
         }
         if(!userFound) {
             cout << "There is no user with entered username" << endl;
+        }
+    }
+
+    void returnTicket(const int& id) {
+        int ticketIndex = findTicket(id);
+        if (ticketIndex != -1) {
+            Ticket ticket = tickets[ticketIndex];
+            string date = ticket.getDate();
+            string flight_no = ticket.getFlight();
+            string place = ticket.getSeat().getPlace();
+
+            for (auto& airplane : airplanes) {
+                if (airplane.getDate() == date && airplane.getFlightNo() == flight_no) {
+                    for (auto& seat : airplane.getAvailableSeats()) {
+                        if (seat.getPlace() == place) {
+                            seat.changeAvailability();
+                            cout << "Ticket with ID " << id << " has been returned." << endl;
+                            // You may want to remove the ticket from the tickets vector and passenger's tickets as well.
+                            // This is just a basic implementation to change the availability.
+                            return;
+                        }
+                    }
+                }
+            }
+
+            cout << "Error: Could not find the corresponding seat in the airplane." << endl;
+        }
+        else {
+            cout << "Error: Ticket with ID " << id << " not found." << endl;
         }
     }
 
@@ -373,6 +397,9 @@ public:
 
             else if (command == "return") {
                 // returning the ticket
+                int id = stoi(inputParams[1]);
+                executor.returnTicket(id);
+
             }
 
             else if (command == "view") {
