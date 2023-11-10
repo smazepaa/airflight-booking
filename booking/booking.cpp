@@ -36,6 +36,9 @@ public:
     void changeAvailability() {
         available = !available;
     }
+
+    Seat(Seat&& other) = delete;
+    Seat(Seat& other) = delete;
 };
 
 class Airplane {
@@ -43,14 +46,14 @@ class Airplane {
     string date;
     string flight_no;
     int seats;
-    vector<Seat> availability;
+    vector<shared_ptr<Seat>> availability; // change availability to hold shared_ptr<Seat>
 
 public:
 
-    Airplane(const string& date, const string& flight_no, int seats, const vector<Seat>& availability)
-        : date(date), flight_no(flight_no), seats(seats), availability(availability) {}
+    Airplane(const string& date, const string& flight_no, int seats, const vector<shared_ptr<Seat>>& availability)
+        : date(date), flight_no(flight_no), seats(seats), availability(availability) {} // change parameter to vector<shared_ptr<Seat>>
 
-    vector<Seat>& getSeats() {
+    vector<shared_ptr<Seat>>& getSeats() { // return a vector of shared_ptr<Seat>
         return this->availability;
     }
 
@@ -63,18 +66,19 @@ public:
     }
 };
 
+
 class Ticket {
     int id;
     string date;
     string flight_no;
     string passenger;
-    Seat seat;
+    shared_ptr<Seat> seat; // make seat a shared_ptr
 
 public:
-    Ticket() {}
+    Ticket() : seat(nullptr) {} // initialize seat to nullptr in the default constructor
 
-    Ticket(const string& date, const string& flight_no, const string& passenger, const Seat& seat, const int& id)
-        : date(date), flight_no(flight_no), passenger(passenger), seat(seat), id(id) {
+    Ticket(const string& date, const string& flight_no, const string& passenger, shared_ptr<Seat> seat, const int& id)
+        : date(date), flight_no(flight_no), passenger(passenger), seat(seat), id(id) { // use shared_ptr
         cout << "Ticket booked, ticket.no: " << id << endl;
     }
 
@@ -94,19 +98,21 @@ public:
         return this->passenger;
     }
 
-    Seat getSeat() const {
+    shared_ptr<Seat> getSeat() const { // return a shared_ptr to the seat
         return this->seat;
     }
 };
 
+
+
 class Passenger {
     string name;
-    vector<Ticket> tickets;
+    vector<shared_ptr<Ticket>> tickets; // change tickets to hold shared_ptr<Ticket>
 
 public:
-    Passenger(const string& name): name(name){}
+    Passenger(const string& name) : name(name) {}
 
-    void addTicket(const Ticket& ticket) {
+    void addTicket(const shared_ptr<Ticket>& ticket) { // change parameter to shared_ptr<Ticket>
         this->tickets.push_back(ticket);
     }
 
@@ -114,15 +120,24 @@ public:
         return this->name;
     }
 
-    vector<Ticket> getTickets() const {
+    vector<shared_ptr<Ticket>> getTickets() const { // return a vector of shared_ptr<Ticket>
         return this->tickets;
     }
 
     void removeTicketById(const int& id) {
-        this->tickets.erase(remove_if(this->tickets.begin(), this->tickets.end(),
-            [id](const Ticket& ticket) { return ticket.getId() == id; }), tickets.end());
+        for (auto it = tickets.begin(); it != tickets.end(); ) {
+            if ((*it)->getId() == id) {
+                it = tickets.erase(it);
+            }
+            else {
+                ++it;
+            }
+        }
     }
+
+
 };
+
 
 class ConfigReader {
 
@@ -165,7 +180,7 @@ public:
             int seatsInRow = stoi(words[2]);
 
             // Generate seat letters based on the number of seats in a row
-            vector<Seat> seats;
+            vector<shared_ptr<Seat>> seats;
             string seatLetters = "";
             for (int i = 0; i < seatsInRow; i++) {
                 seatLetters += 'A' + i;
@@ -186,14 +201,15 @@ public:
                 for (int row = start; row <= end; row++) {
                     for (char seat : seatLetters) {
                         string place = to_string(row) + seat;
-                        Seat seat(place, price, true);
-                        seats.push_back(seat);
+                        shared_ptr<Seat> seat(new Seat(place, price, true)); // create a shared_ptr<Seat>
+                        seats.push_back(seat); // add the shared_ptr<Seat> to the vector
                     }
                 }
             }
 
             // Create an Airplane object
             Airplane airplane(date, flight, seats.size(), seats);
+
             airplanes.push_back(airplane);
         }
 
@@ -215,17 +231,16 @@ class CommandExecutor {
 
 public:
 
-    vector<Seat>& findAirplane(const string& date, const string& flight_no) {
+    vector<shared_ptr<Seat>>& findAirplane(const string& date, const string& flight_no) {
         for (auto& airplane : this->airplanes) {
             if (airplane.getDate() == date && airplane.getFlightNo() == flight_no) {
                 return airplane.getSeats();
             }
         }
 
-        static vector<Seat> emptyVector;
+        static vector<shared_ptr<Seat>> emptyVector;
         return emptyVector;
     }
-
 
     void bookSeat(const string& date, const string& flight_no,
         const string& place, const string& passengerName) {
@@ -245,15 +260,16 @@ public:
             return;
         }
 
-        vector<Seat>& seats = targetAirplane->getSeats();
-        Seat* targetSeat = nullptr;
+        vector<shared_ptr<Seat>>& seats = targetAirplane->getSeats();
+        shared_ptr<Seat> targetSeat = nullptr;
 
-        for (Seat& seat : seats) {
-            if (seat.getPlace() == place && seat.isAvailable()) {
-                targetSeat = &seat;
+        for (shared_ptr<Seat>& seat : seats) {
+            if (seat->getPlace() == place && seat->isAvailable()) {
+                targetSeat = seat;
                 break;
             }
         }
+
 
         if (targetSeat == nullptr) {
             cout << "The seat " << place << " is already booked." << endl;
@@ -261,7 +277,10 @@ public:
         }
 
         targetSeat->changeAvailability();
-        Ticket ticket(date, flight_no, passengerName, *targetSeat, id);
+
+        shared_ptr<Seat> seatPtr(targetSeat);
+        Ticket ticket(date, flight_no, passengerName, seatPtr, id);
+
         id++;
         ticketBooked = true;
         tickets.push_back(ticket);
@@ -269,7 +288,8 @@ public:
         bool passengerExists = false;
         for (auto& passenger : passengers) {
             if (passenger.getName() == passengerName) {
-                passenger.addTicket(ticket);
+                shared_ptr<Ticket> ticketPtr = make_shared<Ticket>(ticket);
+                passenger.addTicket(ticketPtr);
                 passengerExists = true;
                 break;
             }
@@ -277,7 +297,10 @@ public:
 
         if (!passengerExists) {
             Passenger newPassenger(passengerName);
-            newPassenger.addTicket(ticket);
+
+            shared_ptr<Ticket> ticketPtr = make_shared<Ticket>(ticket);
+            newPassenger.addTicket(ticketPtr);
+
             passengers.push_back(newPassenger);
         }
     }
@@ -291,8 +314,8 @@ public:
 
             cout << "Flight: " << ticket.getFlight() << endl
                 << "Date: " << ticket.getDate() << endl
-                << "Place: " << ticket.getSeat().getPlace() << endl
-                << "Price: " << ticket.getSeat().getPrice() << endl
+                << "Place: " << ticket.getSeat()->getPlace() << endl
+                << "Price: " << ticket.getSeat()->getPrice() << endl
                 << "Passenger name: " << ticket.getPassenger() << endl;
         }
     }
@@ -313,14 +336,16 @@ public:
         for (size_t i = 0; i < passengers.size(); ++i) {
             if (passengers[i].getName() == psngName) {
                 userFound = true;
-                vector<Ticket> pasTickets = passengers[i].getTickets();
+                vector<shared_ptr<Ticket>> pasTickets = passengers[i].getTickets();
                 if (pasTickets.size() == 0) {
                     cout << "There is no ticket for this user" << endl;
                     return;
                 }
                 else {
                     for (size_t j = 0; j < pasTickets.size(); ++j) {
-                        int id = pasTickets[j].getId();
+                        if (pasTickets[j] != nullptr) {
+                            int id = pasTickets[j]->getId();
+                        }
                         cout << j + 1 << ". ";
                         viewTicket(id);
                     }
@@ -346,7 +371,7 @@ public:
         Ticket ticket = tickets[ticketIndex];
         string date = ticket.getDate();
         string flight_no = ticket.getFlight();
-        string place = ticket.getSeat().getPlace();
+        string place = ticket.getSeat()->getPlace();
 
         Airplane* targetAirplane = nullptr;
         for (auto& airplane : airplanes) {
@@ -361,13 +386,14 @@ public:
             return;
         }
 
-        Seat* targetSeat = nullptr;
+        shared_ptr<Seat> targetSeat = nullptr;
         for (auto& seat : targetAirplane->getSeats()) {
-            if (seat.getPlace() == place) {
-                targetSeat = &seat;
+            if (seat->getPlace() == place) { // use -> to access members of Seat
+                targetSeat = seat;
                 break;
             }
         }
+
 
         if (targetSeat == nullptr) {
             cout << "Error: Could not find the corresponding seat in the airplane." << endl;
@@ -451,12 +477,12 @@ public:
                 // checking
                 string date = inputParams[1];
                 string flight = inputParams[2];
-                vector<Seat> availability = executor.findAirplane(date, flight);
+                vector<shared_ptr<Seat>> availability = executor.findAirplane(date, flight);
 
                 cout << "Available places:" << endl;
                 for (const auto& seat : availability) {
-                    if (seat.isAvailable()) {
-                        cout << seat.getPlace() << " - " << seat.getPrice() << endl;
+                    if (seat->isAvailable()) {
+                        cout << seat->getPlace() << " - " << seat->getPrice() << endl;
                     }
                 }
             }
