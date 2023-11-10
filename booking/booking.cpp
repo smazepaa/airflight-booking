@@ -64,6 +64,9 @@ public:
     string getFlightNo() const {
         return this->flight_no;
     }
+
+    Airplane(Airplane&& other) = delete;
+    Airplane(Airplane& other) = delete;
 };
 
 
@@ -135,18 +138,16 @@ public:
         }
     }
 
-
 };
-
 
 class ConfigReader {
 
 public:
     ConfigReader(){}
 
-    vector<Airplane> readConfig(const string& filename) {
+    vector<shared_ptr<Airplane>> readConfig(const string& filename) {
 
-        vector<Airplane> airplanes;
+        vector<shared_ptr<Airplane>> airplanes;
         ifstream file(filename);
         string line;
         int num_records = 0;
@@ -208,9 +209,9 @@ public:
             }
 
             // Create an Airplane object
-            Airplane airplane(date, flight, seats.size(), seats);
+            shared_ptr<Airplane> airplane(new Airplane(date, flight, seats.size(), seats)); // create a shared_ptr<Airplane>
 
-            airplanes.push_back(airplane);
+            airplanes.push_back(airplane); // add the shared_ptr<Airplane> to the vector
         }
 
         file.close();
@@ -218,13 +219,14 @@ public:
         return airplanes;
     }
 
+
 };
 
 class CommandExecutor {
 
     string filename = "config-input.txt";
     ConfigReader reader;
-    vector<Airplane> airplanes = reader.readConfig(filename);
+    vector<shared_ptr<Airplane>> airplanes = reader.readConfig(filename);
     vector<Ticket> tickets;
     vector<Passenger> passengers;
     int id = 1234;
@@ -233,8 +235,8 @@ public:
 
     vector<shared_ptr<Seat>>& findAirplane(const string& date, const string& flight_no) {
         for (auto& airplane : this->airplanes) {
-            if (airplane.getDate() == date && airplane.getFlightNo() == flight_no) {
-                return airplane.getSeats();
+            if (airplane->getDate() == date && airplane->getFlightNo() == flight_no) {
+                return airplane->getSeats();
             }
         }
 
@@ -246,11 +248,10 @@ public:
         const string& place, const string& passengerName) {
 
         bool ticketBooked = false;
-        Airplane* targetAirplane = nullptr;
-
-        for (Airplane& airplane : this->airplanes) {
-            if (airplane.getDate() == date && airplane.getFlightNo() == flight_no) {
-                targetAirplane = &airplane;
+        shared_ptr<Airplane> targetAirplane = nullptr;
+        for (shared_ptr<Airplane>& airplane : this->airplanes) {
+            if (airplane->getDate() == date && airplane->getFlightNo() == flight_no) { // use -> to access members of Airplane
+                targetAirplane = airplane;
                 break;
             }
         }
@@ -373,10 +374,10 @@ public:
         string flight_no = ticket.getFlight();
         string place = ticket.getSeat()->getPlace();
 
-        Airplane* targetAirplane = nullptr;
+        shared_ptr<Airplane> targetAirplane = nullptr;
         for (auto& airplane : airplanes) {
-            if (airplane.getDate() == date && airplane.getFlightNo() == flight_no) {
-                targetAirplane = &airplane;
+            if (airplane->getDate() == date && airplane->getFlightNo() == flight_no) { // use -> to access members of Airplane
+                targetAirplane = airplane;
                 break;
             }
         }
@@ -525,7 +526,6 @@ public:
         }
     }
 };
-
 
 int main() {
     
