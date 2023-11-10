@@ -393,9 +393,37 @@ class InputReader {
 
 public:
 
+    bool isValidInput(const vector<string>& inputParams) {
+        string command = inputParams[0];
+
+        if (command == "check") {
+            return inputParams.size() == 3;
+        }
+        else if (command == "book") {
+            return inputParams.size() == 5;
+        }
+        else if (command == "return") {
+            return inputParams.size() == 2;
+        }
+        else if (command == "view") {
+            if (inputParams[1] == "username") {
+                return inputParams.size() == 3;
+            }
+            else {
+                return inputParams.size() == 2;
+            }
+        }
+        else if (command == "clear") {
+            return inputParams.size() == 1;
+        }
+        else {
+            return false;
+        }
+    }
+
     void ProcessInput() {
 
-        while (true){
+        while (true) {
             string inputline;
             cout << "> ";
             getline(cin, inputline);
@@ -409,68 +437,67 @@ public:
 
             if (inputParams.size() == 0) {
                 cout << "You should enter something" << endl;
+                continue;
             }
 
-            else {
-                string command = inputParams[0];
+            if (!isValidInput(inputParams)) {
+                cout << "Invalid input" << endl;
+                continue;
+            }
 
-                if (command == "check") {
-                    string date = inputParams[1];
-                    string flight = inputParams[2];
-                    vector<Seat> availability = executor.findAirplane(date, flight);
+            string command = inputParams[0];
 
-                    cout << "Available places:" << endl;
-                    for (const auto& seat : availability) {
-                        if (seat.isAvailable()) {
-                            cout << seat.getPlace() << " - " << seat.getPrice() << endl;
-                        }
+            if (command == "check") {
+                // checking
+                string date = inputParams[1];
+                string flight = inputParams[2];
+                vector<Seat> availability = executor.findAirplane(date, flight);
+
+                cout << "Available places:" << endl;
+                for (const auto& seat : availability) {
+                    if (seat.isAvailable()) {
+                        cout << seat.getPlace() << " - " << seat.getPrice() << endl;
                     }
                 }
+            }
 
-                else if (command == "book") {
-                    // booking
-                    string date = inputParams[1];
-                    string flight = inputParams[2];
-                    string place = inputParams[3];
-                    string passenger = inputParams[4];
+            else if (command == "book") {
+                // booking
+                string date = inputParams[1];
+                string flight = inputParams[2];
+                string place = inputParams[3];
+                string passenger = inputParams[4];
 
-                    executor.bookSeat(date, flight, place, passenger);
-                }
+                executor.bookSeat(date, flight, place, passenger);
+            }
 
-                else if (command == "return") {
-                    // returning the ticket
-                    int id = stoi(inputParams[1]);
-                    executor.returnTicket(id);
-                }
+            else if (command == "return") {
+                // returning the ticket
+                int id = stoi(inputParams[1]);
+                executor.returnTicket(id);
+            }
 
-                else if (command == "view") {
-                    // viewing by id/username
+            else if (command == "view") {
+                // viewing by id/username
 
-                    if (inputParams[1] == "username") {
-                        // viewing by username 
-                        string passenger = inputParams[2];
-                        executor.showForUser(passenger);
-                    }
-
-                    else {
-                        // viewing by ticket id
-                        int id = stoi(inputParams[1]);
-                        executor.viewTicket(id);
-                    }
-                }
-
-                else if (command == "clear") {
-                    system("CLS");
-
+                if (inputParams[1] == "username") {
+                    // viewing by username 
+                    string passenger = inputParams[2];
+                    executor.showForUser(passenger);
                 }
 
                 else {
-                    cout << "Invalid input" << endl;
+                    // viewing by ticket id
+                    int id = stoi(inputParams[1]);
+                    executor.viewTicket(id);
                 }
+            }
+
+            else if (command == "clear") {
+                system("CLS");
             }
         }
     }
-
 };
 
 
