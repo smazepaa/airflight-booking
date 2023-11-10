@@ -4,7 +4,6 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <algorithm>
 #include <cstdlib>
 
 using namespace std;
@@ -46,14 +45,14 @@ class Airplane {
     string date;
     string flight_no;
     int seats;
-    vector<shared_ptr<Seat>> availability; // change availability to hold shared_ptr<Seat>
+    vector<shared_ptr<Seat>> availability;
 
 public:
 
     Airplane(const string& date, const string& flight_no, int seats, const vector<shared_ptr<Seat>>& availability)
-        : date(date), flight_no(flight_no), seats(seats), availability(availability) {} // change parameter to vector<shared_ptr<Seat>>
+        : date(date), flight_no(flight_no), seats(seats), availability(availability) {}
 
-    vector<shared_ptr<Seat>>& getSeats() { // return a vector of shared_ptr<Seat>
+    vector<shared_ptr<Seat>>& getSeats() {
         return this->availability;
     }
 
@@ -75,13 +74,13 @@ class Ticket {
     string date;
     string flight_no;
     string passenger;
-    shared_ptr<Seat> seat; // make seat a shared_ptr
+    shared_ptr<Seat> seat;
 
 public:
-    Ticket() : seat(nullptr) {} // initialize seat to nullptr in the default constructor
+    Ticket() : seat(nullptr) {}
 
     Ticket(const string& date, const string& flight_no, const string& passenger, shared_ptr<Seat> seat, const int& id)
-        : date(date), flight_no(flight_no), passenger(passenger), seat(seat), id(id) { // use shared_ptr
+        : date(date), flight_no(flight_no), passenger(passenger), seat(seat), id(id) {
         cout << "Ticket booked, ticket.no: " << id << endl;
     }
 
@@ -101,7 +100,7 @@ public:
         return this->passenger;
     }
 
-    shared_ptr<Seat> getSeat() const { // return a shared_ptr to the seat
+    shared_ptr<Seat> getSeat() const {
         return this->seat;
     }
 };
@@ -110,12 +109,12 @@ public:
 
 class Passenger {
     string name;
-    vector<shared_ptr<Ticket>> tickets; // change tickets to hold shared_ptr<Ticket>
+    vector<shared_ptr<Ticket>> tickets;
 
 public:
     Passenger(const string& name) : name(name) {}
 
-    void addTicket(const shared_ptr<Ticket>& ticket) { // change parameter to shared_ptr<Ticket>
+    void addTicket(const shared_ptr<Ticket>& ticket) {
         this->tickets.push_back(ticket);
     }
 
@@ -123,7 +122,7 @@ public:
         return this->name;
     }
 
-    vector<shared_ptr<Ticket>> getTickets() const { // return a vector of shared_ptr<Ticket>
+    vector<shared_ptr<Ticket>> getTickets() const { 
         return this->tickets;
     }
 
@@ -137,7 +136,6 @@ public:
             }
         }
     }
-
 };
 
 class ConfigReader {
@@ -202,24 +200,19 @@ public:
                 for (int row = start; row <= end; row++) {
                     for (char seat : seatLetters) {
                         string place = to_string(row) + seat;
-                        shared_ptr<Seat> seat(new Seat(place, price, true)); // create a shared_ptr<Seat>
-                        seats.push_back(seat); // add the shared_ptr<Seat> to the vector
+                        shared_ptr<Seat> seat(new Seat(place, price, true));
+                        seats.push_back(seat);
                     }
                 }
             }
 
-            // Create an Airplane object
-            shared_ptr<Airplane> airplane(new Airplane(date, flight, seats.size(), seats)); // create a shared_ptr<Airplane>
-
-            airplanes.push_back(airplane); // add the shared_ptr<Airplane> to the vector
+            shared_ptr<Airplane> airplane(new Airplane(date, flight, seats.size(), seats));
+            airplanes.push_back(airplane);
         }
 
         file.close();
-
         return airplanes;
     }
-
-
 };
 
 class CommandExecutor {
@@ -250,7 +243,7 @@ public:
         bool ticketBooked = false;
         shared_ptr<Airplane> targetAirplane = nullptr;
         for (shared_ptr<Airplane>& airplane : this->airplanes) {
-            if (airplane->getDate() == date && airplane->getFlightNo() == flight_no) { // use -> to access members of Airplane
+            if (airplane->getDate() == date && airplane->getFlightNo() == flight_no) {
                 targetAirplane = airplane;
                 break;
             }
@@ -271,14 +264,12 @@ public:
             }
         }
 
-
         if (targetSeat == nullptr) {
             cout << "The seat " << place << " is already booked." << endl;
             return;
         }
 
         targetSeat->changeAvailability();
-
         shared_ptr<Seat> seatPtr(targetSeat);
         Ticket ticket(date, flight_no, passengerName, seatPtr, id);
 
@@ -305,7 +296,6 @@ public:
             passengers.push_back(newPassenger);
         }
     }
-
 
     void viewTicket(const int& id_number) {
 
@@ -350,13 +340,14 @@ public:
                         cout << j + 1 << ". ";
                         viewTicket(id);
                     }
+
                     if (userFound) {
                         break;
                     }
                 }
-                
             }
         }
+
         if(!userFound) {
             cout << "There is no user with entered username" << endl;
         }
@@ -376,7 +367,7 @@ public:
 
         shared_ptr<Airplane> targetAirplane = nullptr;
         for (auto& airplane : airplanes) {
-            if (airplane->getDate() == date && airplane->getFlightNo() == flight_no) { // use -> to access members of Airplane
+            if (airplane->getDate() == date && airplane->getFlightNo() == flight_no) {
                 targetAirplane = airplane;
                 break;
             }
@@ -389,12 +380,11 @@ public:
 
         shared_ptr<Seat> targetSeat = nullptr;
         for (auto& seat : targetAirplane->getSeats()) {
-            if (seat->getPlace() == place) { // use -> to access members of Seat
+            if (seat->getPlace() == place) {
                 targetSeat = seat;
                 break;
             }
         }
-
 
         if (targetSeat == nullptr) {
             cout << "Error: Could not find the corresponding seat in the airplane." << endl;
