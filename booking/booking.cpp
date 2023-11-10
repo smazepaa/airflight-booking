@@ -107,8 +107,6 @@ public:
     Ticket(Ticket& other) = delete;
 };
 
-
-
 class Passenger {
     string name;
     vector<shared_ptr<Ticket>> tickets;
@@ -138,6 +136,9 @@ public:
             }
         }
     }
+
+    Passenger(Passenger&& other) = delete;
+    Passenger(Passenger& other) = delete;
 };
 
 class ConfigReader {
@@ -223,7 +224,7 @@ class CommandExecutor {
     ConfigReader reader;
     vector<shared_ptr<Airplane>> airplanes = reader.readConfig(filename);
     vector<shared_ptr<Ticket>> tickets;
-    vector<Passenger> passengers;
+    vector<shared_ptr<Passenger>> passengers;
     int id = 1234;
 
 public:
@@ -283,25 +284,26 @@ public:
 
         bool passengerExists = false;
         for (auto& passenger : passengers) {
-            if (passenger.getName() == passengerName) {
-                passenger.addTicket(ticketPtr);
+            if (passenger->getName() == passengerName) {
+                passenger->addTicket(ticketPtr);
                 passengerExists = true;
                 break;
             }
         }
 
         if (!passengerExists) {
-            Passenger newPassenger(passengerName);
-            newPassenger.addTicket(ticketPtr);
+            shared_ptr<Passenger> newPassenger = std::make_shared<Passenger>(passengerName);
+            newPassenger->addTicket(ticketPtr);
             passengers.push_back(newPassenger);
         }
     }
+
 
     void viewTicket(const int& id_number) {
 
         int ticketIndex = findTicket(id_number);
         if (ticketIndex != -1) {
-            std::shared_ptr<Ticket> ticket = tickets[ticketIndex]; // Use a shared_ptr here
+            std::shared_ptr<Ticket> ticket = tickets[ticketIndex];
 
             cout << "Flight: " << ticket->getFlight() << endl
                 << "Date: " << ticket->getDate() << endl
@@ -310,7 +312,6 @@ public:
                 << "Passenger name: " << ticket->getPassenger() << endl;
         }
     }
-
 
     int findTicket(const int& id) {
         for (size_t i = 0; i < tickets.size(); ++i) {
@@ -326,9 +327,9 @@ public:
         bool userFound = false;
 
         for (size_t i = 0; i < passengers.size(); ++i) {
-            if (passengers[i].getName() == psngName) {
+            if (passengers[i]->getName() == psngName) {
                 userFound = true;
-                vector<shared_ptr<Ticket>> pasTickets = passengers[i].getTickets();
+                vector<shared_ptr<Ticket>> pasTickets = passengers[i]->getTickets();
                 if (pasTickets.size() == 0) {
                     cout << "There is no ticket for this user" << endl;
                     return;
@@ -397,8 +398,8 @@ public:
         this->tickets.erase(this->tickets.begin() + ticketIndex);
 
         for (auto& passenger : passengers) {
-            if (passenger.getName() == ticket->getPassenger()) {
-                passenger.removeTicketById(id);
+            if (passenger->getName() == ticket->getPassenger()) {
+                passenger->removeTicketById(id);
                 break;
             }
         }
