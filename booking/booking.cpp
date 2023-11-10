@@ -68,7 +68,6 @@ public:
     Airplane(Airplane& other) = delete;
 };
 
-
 class Ticket {
     int id;
     string date;
@@ -103,6 +102,9 @@ public:
     shared_ptr<Seat> getSeat() const {
         return this->seat;
     }
+
+    Ticket(Ticket&& other) = delete;
+    Ticket(Ticket& other) = delete;
 };
 
 
@@ -220,7 +222,7 @@ class CommandExecutor {
     string filename = "config-input.txt";
     ConfigReader reader;
     vector<shared_ptr<Airplane>> airplanes = reader.readConfig(filename);
-    vector<Ticket> tickets;
+    vector<shared_ptr<Ticket>> tickets;
     vector<Passenger> passengers;
     int id = 1234;
 
@@ -271,16 +273,17 @@ public:
 
         targetSeat->changeAvailability();
         shared_ptr<Seat> seatPtr(targetSeat);
-        Ticket ticket(date, flight_no, passengerName, seatPtr, id);
 
         id++;
         ticketBooked = true;
-        tickets.push_back(ticket);
+        shared_ptr<Ticket> ticketPtr = std::make_shared
+            <Ticket>(date, flight_no, passengerName, seatPtr, id);
+
+        tickets.push_back(ticketPtr);
 
         bool passengerExists = false;
         for (auto& passenger : passengers) {
             if (passenger.getName() == passengerName) {
-                shared_ptr<Ticket> ticketPtr = make_shared<Ticket>(ticket);
                 passenger.addTicket(ticketPtr);
                 passengerExists = true;
                 break;
@@ -289,10 +292,7 @@ public:
 
         if (!passengerExists) {
             Passenger newPassenger(passengerName);
-
-            shared_ptr<Ticket> ticketPtr = make_shared<Ticket>(ticket);
             newPassenger.addTicket(ticketPtr);
-
             passengers.push_back(newPassenger);
         }
     }
@@ -300,20 +300,21 @@ public:
     void viewTicket(const int& id_number) {
 
         int ticketIndex = findTicket(id_number);
-        if (ticketIndex != - 1) {
-            Ticket ticket = tickets[ticketIndex];
+        if (ticketIndex != -1) {
+            std::shared_ptr<Ticket> ticket = tickets[ticketIndex]; // Use a shared_ptr here
 
-            cout << "Flight: " << ticket.getFlight() << endl
-                << "Date: " << ticket.getDate() << endl
-                << "Place: " << ticket.getSeat()->getPlace() << endl
-                << "Price: " << ticket.getSeat()->getPrice() << endl
-                << "Passenger name: " << ticket.getPassenger() << endl;
+            cout << "Flight: " << ticket->getFlight() << endl
+                << "Date: " << ticket->getDate() << endl
+                << "Place: " << ticket->getSeat()->getPlace() << endl
+                << "Price: " << ticket->getSeat()->getPrice() << endl
+                << "Passenger name: " << ticket->getPassenger() << endl;
         }
     }
 
+
     int findTicket(const int& id) {
         for (size_t i = 0; i < tickets.size(); ++i) {
-            if (tickets[i].getId() == id) {
+            if (tickets[i]->getId() == id) {
                 return i;
             }
         }
@@ -360,10 +361,10 @@ public:
             return;
         }
 
-        Ticket ticket = tickets[ticketIndex];
-        string date = ticket.getDate();
-        string flight_no = ticket.getFlight();
-        string place = ticket.getSeat()->getPlace();
+        shared_ptr<Ticket> ticket = tickets[ticketIndex];
+        string date = ticket->getDate();
+        string flight_no = ticket->getFlight();
+        string place = ticket->getSeat()->getPlace();
 
         shared_ptr<Airplane> targetAirplane = nullptr;
         for (auto& airplane : airplanes) {
@@ -396,7 +397,7 @@ public:
         this->tickets.erase(this->tickets.begin() + ticketIndex);
 
         for (auto& passenger : passengers) {
-            if (passenger.getName() == ticket.getPassenger()) {
+            if (passenger.getName() == ticket->getPassenger()) {
                 passenger.removeTicketById(id);
                 break;
             }
